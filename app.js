@@ -7,10 +7,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let username;
 
-    // Request notification permission
+       // Request notification permission
     if (Notification.permission !== 'granted') {
         Notification.requestPermission();
     }
+    function loadMessages() {
+        fetch('http://localhost/Chat-app/get_messages.php')
+            .then(response => response.json())
+            .then(messages => {
+                messagesContainer.innerHTML = '';
+                messages.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.textContent = `${message.username}: ${message.Message} (${message.Clock})`;
+                    messagesContainer.appendChild(messageElement);
+                });
+            });
+    }
+     var messageForm = document.getElementById('chat-container')
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const message = messageInput.value;
+        messageInput.value = '';
+
+        fetch('http://localhost/Chat-app/save_message.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
+        }).then(loadMessages);
+    });
+
+    loadMessages();
+    setInterval(loadMessages, 5000); // Refresh messages every 5 seconds
 
     // Function to show notifications
     function showNotification(title, body) {
