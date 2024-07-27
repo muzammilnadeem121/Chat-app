@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const [sender, ...messageParts] = parsedMessage.message.split(': ');
                     const messageText = messageParts.join(': ');
 
-                    if (username === username) {
+                    if (localStorage.getItem('username') === username) {
                         messageDiv.classList.add('my-message');
                     } else {
                         messageDiv.classList.add('other-message');
