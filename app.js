@@ -112,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         const message = messageInput.value;
-        messageInput.value = '';
 
         fetch('http://localhost/Chat-app/save_message.php', {
             method: 'POST',
@@ -121,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
         }).then(loadMessages);
+        messageInput.value = '';
     });
 
     loadMessages();
