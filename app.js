@@ -17,7 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadMessages() {
         fetch('http://localhost/Chat-app/get_messages.php')
-            .then(response => response.json())
+            .then(response =>{
+                 if (!response.ok) {
+                    throw new Error('get_messages error :'+Error);
+                 }
+                 response.json()})
             .then(messages => {
                 messagesContainer.innerHTML = '';
                 messages.forEach(message => {
