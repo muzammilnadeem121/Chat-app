@@ -23,12 +23,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 messagesContainer.innerHTML = '';
                 messages.forEach(message => {
                     const messageElement = document.createElement('div');
-                    messageElement.textContent = `${message.username}: ${message.Message}`;
+                    messageElement.className = 'message';
+                    messageElement.textContent = `${message.username}: ${message.Message} (${message.Clock})`;
                     messagesContainer.appendChild(messageElement);
                 });
-            })
-            .catch(error => console.error('Error loading messages:', error));
+            });
     }
+
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const message = messageInput.value;
+        messageInput.value = '';
+
+        fetch('http://localhost/Chat-app/save_message.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
+        }).then(loadMessages);
+    });
 
     function sendMessage(message) {
         if (!username) {
@@ -109,20 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ws.addEventListener('error', error => {
         console.error('WebSocket error:', error);
-    });
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const message = messageInput.value;
-
-        fetch('http://localhost/Chat-app/save_message.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
-        }).then(loadMessages);
-        messageInput.value = '';
     });
 
     loadMessages();
