@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = messageInput.value;
         messageInput.value = '';
 
-        fetch('http://localhost/save_message.php', {
+        fetch('http://localhost/Chat-app/save_message.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
