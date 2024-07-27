@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageForm = document.getElementById('chat-container')
 
     let username;
+    usernameInput.value = localStorage.getItem('username')
 
     // Request notification permission
     Notification.requestPermission().then(permission => {
@@ -49,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Please enter a username');
                 return;
             }
+            localStorage.setItem('username',username)
             ws.send(JSON.stringify({ type: 'username', username: username }));
         } else {
             sendMessage(messageInput.value.trim());
