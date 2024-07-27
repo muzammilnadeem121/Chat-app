@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const messagesContainer = document.getElementById('messages');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
+    const messageForm = document.getElementById('chat-container')
 
     let username;
 
@@ -106,6 +107,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ws.addEventListener('error', error => {
         console.error('WebSocket error:', error);
+    });
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const message = messageInput.value;
+        messageInput.value = '';
+
+        fetch('http://localhost/save_message.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
+        }).then(loadMessages);
     });
 
     loadMessages();
