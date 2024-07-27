@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const ws = new WebSocket('ws://localhost:8080'); // Connect to the local WebSocket server
+    const ws = new WebSocket('ws://localhost:8080');
     const usernameInput = document.getElementById('username-input');
     const messagesContainer = document.getElementById('messages');
     const messageInput = document.getElementById('message-input');
@@ -7,10 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let username;
 
-       // Request notification permission
-    if (Notification.permission !== 'granted') {
-        Notification.requestPermission();
-    }
+    // Request notification permission
+    Notification.requestPermission().then(permission => {
+        if (permission !== 'granted') {
+            console.log('Notification permission denied');
+        }
+    });
+
     function loadMessages() {
         fetch('http://localhost/Chat-app/get_messages.php')
             .then(response => response.json())
@@ -21,90 +24,90 @@ document.addEventListener('DOMContentLoaded', () => {
                     messageElement.textContent = `${message.username}: ${message.Message} (${message.Clock})`;
                     messagesContainer.appendChild(messageElement);
                 });
-            });
+            })
+            .catch(error => console.error('Error loading messages:', error));
     }
-     var messageForm = document.getElementById('chat-container')
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
 
-        const message = messageInput.value;
+    function sendMessage(message) {
+        if (!username) {
+            alert('Please enter a username');
+            return;
+        }
+        if (!message.trim()) {
+            alert('Please enter a message');
+            return;
+        }
+        ws.send(JSON.stringify({ type: 'message', message: message }));
         messageInput.value = '';
-
-        fetch('http://localhost/Chat-app/save_message.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
-        }).then(loadMessages);
-    });
-
-    loadMessages();
-    setInterval(loadMessages, 5000); // Refresh messages every 5 seconds
-
-    // Function to show notifications
-    function showNotification(title, body) {
-        if (Notification.permission === 'granted') {
-            new Notification(title, { body: body });
-        }
     }
-
-    ws.addEventListener('open', () => {
-        console.log('Connected to WebSocket server');
-    });
-
-    ws.addEventListener('message', (event) => {
-        const parsedMessage = JSON.parse(event.data);
-
-        if (parsedMessage.type === 'error') {
-            alert(parsedMessage.message);
-            username = null;  // Reset the username if there's an error
-        } else if (parsedMessage.type === 'success') {
-            username = usernameInput.value;
-            alert(parsedMessage.message);
-        } else if (parsedMessage.type === 'message') {
-            const messageDiv = document.createElement('div');
-            const [sender, ...messageParts] = parsedMessage.message.split(': ');
-            const messageText = messageParts.join(': ');
-
-            if (sender === username) {
-                messageDiv.classList.add('my-message');
-            } else {
-                messageDiv.classList.add('other-message');
-                // Show notification for messages from other users
-                showNotification(sender, messageText);
-            }
-
-            messageDiv.textContent = parsedMessage.message;
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
-        } else if (parsedMessage.type === 'info') {
-            console.log(parsedMessage.message);
-        }
-    });
 
     sendButton.addEventListener('click', () => {
         if (!username) {
             username = usernameInput.value.trim();
             if (!username) {
-                alert('Please enter a username.');
+                alert('Please enter a username');
                 return;
             }
             ws.send(JSON.stringify({ type: 'username', username: username }));
         } else {
-            const message = messageInput.value.trim();
-            if (message) {
-                ws.send(JSON.stringify({ type: 'message', message: message }));
-                messageInput.value = '';
-            } else {
-                alert('Please enter a message.');
-            }
+            sendMessage(messageInput.value.trim());
         }
     });
 
-    messageInput.addEventListener('keypress', (event) => {
+    messageInput.addEventListener('keypress', event => {
         if (event.key === 'Enter') {
             sendButton.click();
         }
     });
+
+    ws.addEventListener('open', () => {
+        console.log('Connected to WebSocket server');
+    });
+
+    ws.addEventListener('message', event => {
+        try {
+            const parsedMessage = JSON.parse(event.data);
+            switch (parsedMessage.type) {
+                case 'error':
+                    alert(parsedMessage.message);
+                    username = null;
+                    break;
+                case 'success':
+                    username = usernameInput.value;
+                    alert(parsedMessage.message);
+                    break;
+                case 'message':
+                    const messageDiv = document.createElement('div');
+                    const [sender, ...messageParts] = parsedMessage.message.split(': ');
+                    const messageText = messageParts.join(': ');
+
+                    if (sender === username) {
+                        messageDiv.classList.add('my-message');
+                    } else {
+                        messageDiv.classList.add('other-message');
+                        // Show notification for messages from other users
+                        new Notification(sender, { body: messageText });
+                    }
+
+                    messageDiv.textContent = parsedMessage.message;
+                    messagesContainer.appendChild(messageDiv);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    break;
+                case 'info':
+                    console.log(parsedMessage.message);
+                    break;
+                default:
+                    console.log('Unknown message type:', parsedMessage.type);
+            }
+        } catch (error) {
+            console.error('Error parsing message:', error);
+        }
+    });
+
+    ws.addEventListener('error', error => {
+        console.error('WebSocket error:', error);
+    });
+
+    loadMessages();
+    setInterval(loadMessages, 5000);
 });
