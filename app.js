@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 messagesContainer.innerHTML = '';
                 messages.forEach(message => {
                     const messageElement = document.createElement('div');
-                    messageElement.textContent = `${message.username}: ${message.Message} (${message.Clock})`;
+                    messageElement.textContent = `${message.username}: ${message.Message}`;
                     messagesContainer.appendChild(messageElement);
                 });
             })
