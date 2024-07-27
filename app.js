@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const [sender, ...messageParts] = parsedMessage.message.split(': ');
                     const messageText = messageParts.join(': ');
 
-                    if (sender === username) {
+                    if (username === username) {
                         messageDiv.classList.add('my-message');
                     } else {
                         messageDiv.classList.add('other-message');
