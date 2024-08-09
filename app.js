@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendButton = document.getElementById('send-button');
 
     let username;
-    fetch('get_messages.php')
+    fetch('localhost/get_messages.php')
         .then(response => response.json())
         .then(messages => {
             messages.reverse().forEach(message => {
