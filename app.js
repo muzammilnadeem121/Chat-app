@@ -1,131 +1,91 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket('ws://localhost:8080'); // Connect to the local WebSocket server
     const usernameInput = document.getElementById('username-input');
     const messagesContainer = document.getElementById('messages');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
-    const messageForm = document.getElementById('chat-container')
 
     let username;
-    usernameInput.value = localStorage.getItem('username')
+    fetch('get_messages.php')
+        .then(response => response.json())
+        .then(messages => {
+            messages.reverse().forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.textContent = `${message.username}: ${message.message}`;
+                messagesContainer.appendChild(messageDiv);
+            });
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        })
+        .catch(error => console.error('Error fetching messages:', error));
 
     // Request notification permission
-    Notification.requestPermission().then(permission => {
-        if (permission !== 'granted') {
-            console.log('Notification permission denied');
-        }
-    });
-
-    function loadMessages() {
-        fetch('http://localhost/Chat-app/get_messages.php')
-            .then(response => response.json())
-            .then(messages => {
-                messagesContainer.innerHTML = '';
-                messages.forEach(message => {
-                    const messageElement = document.createElement('div');
-                    messageElement.className = 'message';
-                    messageElement.textContent = `${message.username}: ${message.Message}`;
-                    messagesContainer.appendChild(messageElement);
-                });
-            });
+    if (Notification.permission !== 'granted') {
+        Notification.requestPermission();
     }
 
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const message = messageInput.value;
-        messageInput.value = '';
-
-        fetch('http://localhost/Chat-app/save_message.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `username=${encodeURIComponent(username)}&message=${encodeURIComponent(message)}`
-        }).then(loadMessages);
-    });
-
-    function sendMessage(message) {
-        if (!username) {
-            alert('Please enter a username');
-            return;
+    // Function to show notifications
+    function showNotification(title, body) {
+        if (Notification.permission === 'granted') {
+            new Notification(title, { body: body });
         }
-        if (!message.trim()) {
-            alert('Please enter a message');
-            return;
-        }
-        ws.send(JSON.stringify({ type: 'message', message: message }));
-        messageInput.value = '';
     }
-
-    sendButton.addEventListener('click', () => {
-        if (!username) {
-            username = usernameInput.value.trim();
-            if (!username) {
-                alert('Please enter a username');
-                return;
-            }
-            localStorage.setItem('username',username)
-            ws.send(JSON.stringify({ type: 'username', username: username }));
-        } else {
-            sendMessage(messageInput.value.trim());
-        }
-    });
-
-    messageInput.addEventListener('keypress', event => {
-        if (event.key === 'Enter') {
-            sendButton.click();
-        }
-    });
 
     ws.addEventListener('open', () => {
         console.log('Connected to WebSocket server');
     });
 
-    ws.addEventListener('message', event => {
-        try {
-            const parsedMessage = JSON.parse(event.data);
-            switch (parsedMessage.type) {
-                case 'error':
-                    alert(parsedMessage.message);
-                    username = null;
-                    break;
-                case 'success':
-                    username = usernameInput.value;
-                    alert(parsedMessage.message);
-                    break;
-                case 'message':
-                    const messageDiv = document.createElement('div');
-                    const [sender, ...messageParts] = parsedMessage.message.split(': ');
-                    const messageText = messageParts.join(': ');
+    ws.addEventListener('message', (event) => {
+        const parsedMessage = JSON.parse(event.data);
 
-                    if (localStorage.getItem('username') === username) {
-                        messageDiv.classList.add('my-message');
-                    } else {
-                        messageDiv.classList.add('other-message');
-                        // Show notification for messages from other users
-                        new Notification(sender, { body: messageText });
-                    }
+        if (parsedMessage.type === 'error') {
+            alert(parsedMessage.message);
+            username = null;  // Reset the username if there's an error
+        } else if (parsedMessage.type === 'success') {
+            username = usernameInput.value;
+            alert(parsedMessage.message);
+        } else if (parsedMessage.type === 'message') {
+            const messageDiv = document.createElement('div');
+            const [sender, ...messageParts] = parsedMessage.message.split(': ');
+            const messageText = messageParts.join(': ');
 
-                    messageDiv.textContent = parsedMessage.message;
-                    messagesContainer.appendChild(messageDiv);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    break;
-                case 'info':
-                    console.log(parsedMessage.message);
-                    break;
-                default:
-                    console.log('Unknown message type:', parsedMessage.type);
+            if (sender === username) {
+                messageDiv.classList.add('my-message');
+            } else {
+                messageDiv.classList.add('other-message');
+                // Show notification for messages from other users
+                showNotification(sender, messageText);
             }
-        } catch (error) {
-            console.error('Error parsing message:', error);
+
+            messageDiv.textContent = parsedMessage.message;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
+        } else if (parsedMessage.type === 'info') {
+            console.log(parsedMessage.message);
         }
     });
 
-    ws.addEventListener('error', error => {
-        console.error('WebSocket error:', error);
+    sendButton.addEventListener('click', () => {
+        if (!username) {
+            username = usernameInput.value.trim();
+            if (!username) {
+                alert('Please enter a username.');
+                return;
+            }
+            ws.send(JSON.stringify({ type: 'username', username: username }));
+        } else {
+            const message = messageInput.value.trim();
+            if (message) {
+                ws.send(JSON.stringify({ type: 'message', message: message }));
+                messageInput.value = '';
+            } else {
+                alert('Please enter a message.');
+            }
+        }
     });
 
-    loadMessages();
-    setInterval(loadMessages, 5000);
+    messageInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            sendButton.click();
+        }
+    });
 });
